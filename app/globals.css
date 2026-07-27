@@ -16,3 +16,87 @@ main{min-width:0;margin-left:244px}.topbar{position:sticky;top:0;z-index:20;heig
 @media(max-width:920px){.sidebar{transform:translateX(-100%);transition:.2s}.sidebar.open{transform:none}.mobile-close{display:grid;margin-left:auto;background:#111c18;border-color:#223029}.nav-scrim{z-index:29}main{margin-left:0}.topbar{grid-template-columns:auto auto 1fr;padding:0 18px}.mobile-menu{display:grid}.search{display:none}.overview-grid,.bottom-grid,.split{grid-template-columns:1fr}.actions{margin-left:auto}}
 @media(max-width:680px){.content{padding:24px 16px 50px}.topbar{padding:0 14px;gap:10px}.environment{font-size:10px}.refresh{width:34px;padding:0;justify-content:center}.refresh:not(svg){font-size:0}.heading{align-items:flex-start;flex-direction:column}.heading>div:last-child{width:100%;justify-content:space-between}.metrics,.case-grid,.settings-grid{grid-template-columns:1fr}.metric{min-height:135px}.score-row{align-items:flex-start;flex-direction:column}.workers,.capabilities>div{grid-template-columns:1fr}.panel{padding:16px}.stack{align-items:flex-start;flex-wrap:wrap}.stack>p{min-width:calc(100% - 60px)}.stack>div{margin-left:44px}.stack-actions{width:100%;justify-content:flex-end}.team{grid-template-columns:28px 40px 1fr auto}.team>.status,.team>small{display:none}.capabilities{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* ADR-005 multi-domain: domain scope picker (topbar), per-domain rollup cards (overview),
+   domain tag on a case card. Only render when more than one domain is registered. */
+/* color-scheme makes the browser paint NATIVE widgets (the select popup, scrollbars, focus
+   rings) with the right palette — without it a dark theme gets a light popup with light text. */
+:root[data-theme="dark"]{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+.domain-picker{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--soft)}
+.domain-picker select{border:0;outline:0;background:var(--surface2);color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+/* the dropdown list itself: some engines ignore the parent's colours, so state them here */
+.domain-picker select option{background:var(--surface);color:var(--text)}
+.domain-picker select option:checked{background:var(--surface3);color:var(--text)}
+.domain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-bottom:20px}
+.domain-card header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.domain-card header .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.domain-card header b{display:block;font-size:14px}
+.domain-card header small{color:var(--muted);font-size:11px;font-family:ui-monospace,monospace}
+.domain-card.attention{border-color:color-mix(in srgb,var(--amber) 45%,var(--border))}
+.domain-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.domain-stats>div{text-align:center;padding:10px 4px;border-radius:10px;background:var(--surface2)}
+.domain-stats b{display:block;font-size:20px;line-height:1.1}
+.domain-stats small{color:var(--muted);font-size:10px;letter-spacing:.04em;text-transform:uppercase}
+.domain-card footer{margin-top:12px;display:flex;justify-content:flex-end}
+.domain-card footer button{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;color:var(--mint);font:inherit;font-size:12px;cursor:pointer}
+.domain-tag{margin-left:auto;padding:2px 8px;border-radius:999px;background:var(--surface3);color:var(--soft);font-size:10px;font-style:normal;letter-spacing:.03em;text-transform:uppercase}
+@media(max-width:680px){.domain-picker{display:none}.domain-grid{grid-template-columns:1fr}}
+/* ---- control-plane panels (settings / domains / services / metrics) ---- */
+.stack-panels{display:flex;flex-direction:column;gap:16px}
+.hint{margin:0;padding:12px 14px;border:1px solid var(--border);border-left:3px solid var(--mint);border-radius:10px;background:var(--surface2);color:var(--soft);font-size:12.5px;line-height:1.6}
+.hint code,.hint-inline code{padding:1px 5px;border-radius:5px;background:var(--surface3);font-size:11.5px}
+.hint-inline{display:block;margin-top:10px;color:var(--muted);font-size:11.5px}
+.flash{display:flex;align-items:center;gap:8px;margin:0;padding:11px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--soft);font-size:12.5px}
+.flash.ok{border-color:color-mix(in srgb,var(--mint) 45%,var(--border));color:var(--mint)}
+.flash.bad{border-color:color-mix(in srgb,var(--red) 45%,var(--border));color:var(--red)}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.panel-head p{margin:0;color:var(--muted);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+.panel-head h2{margin:2px 0 0;font-size:16px}
+.head-actions{display:flex;gap:8px;flex-wrap:wrap}
+button.primary,button.ghost{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:inherit;font-size:12px;cursor:pointer}
+button.primary{border-color:transparent;background:var(--mint);color:#04150d;font-weight:600}
+button.ghost:hover{background:var(--surface3)}
+button.ghost.danger{color:var(--red)}
+button.primary:disabled,button.ghost:disabled{opacity:.45;cursor:not-allowed}
+/* settings */
+.settings-rows{display:flex;flex-direction:column;gap:8px}
+.setting-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(140px,1.4fr) auto;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;background:var(--surface2)}
+.setting-row label{display:flex;align-items:center;gap:7px;min-width:0}
+.setting-row code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.setting-row label em{padding:1px 6px;border-radius:999px;background:var(--mintbg);color:var(--mint);font-size:9.5px;font-style:normal;letter-spacing:.05em;text-transform:uppercase}
+.setting-row input,.setting-row select{height:30px;padding:0 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font:inherit;font-size:12.5px;min-width:0}
+.setting-actions{display:flex;gap:6px}
+/* domains */
+.domain-rows{display:flex;flex-direction:column;gap:8px}
+.domain-row{display:grid;grid-template-columns:12px minmax(160px,1fr) minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px;border-radius:9px;background:var(--surface2)}
+.domain-row.off{opacity:.55}
+.domain-row .dot{width:10px;height:10px;border-radius:50%}
+.domain-id b{display:block;font-size:13.5px}
+.domain-id small{color:var(--muted);font-size:11px}
+.domain-over{display:flex;flex-wrap:wrap;gap:6px}
+.domain-over em{padding:2px 8px;border-radius:999px;background:var(--surface3);color:var(--soft);font-size:10.5px;font-style:normal}
+.domain-row-actions{display:flex;gap:6px}
+.domain-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+.domain-form label{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:11px}
+.domain-form input{height:30px;padding:0 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font:inherit;font-size:12.5px}
+.domain-form input[type=color]{width:44px;padding:2px}
+/* services */
+.service-rows{display:flex;flex-direction:column;gap:7px}
+.service-row{display:grid;grid-template-columns:10px minmax(90px,1fr) auto auto;align-items:center;gap:12px;padding:9px 10px;border-radius:9px;background:var(--surface2);font-size:13px}
+.service-row i{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.service-row i.on{background:var(--mint);box-shadow:0 0 0 3px color-mix(in srgb,var(--mint) 22%,transparent)}
+.service-row i.off{background:var(--red)}
+.service-row small{color:var(--muted);font-size:11px;text-align:right}
+/* metrics tables */
+.metric-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.metric-table th{padding:0 8px 8px;color:var(--muted);font-size:10.5px;font-weight:500;letter-spacing:.06em;text-align:left;text-transform:uppercase}
+.metric-table td{padding:8px;border-top:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.metric-table td.warn{color:var(--amber);font-weight:600}
+.metric-table tbody tr:hover{background:var(--surface2)}
+/* back affordance: shown whenever the operator drilled in from another screen */
+.back{display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;height:28px;padding:0 10px 0 8px;border:1px solid var(--border);border-radius:999px;background:var(--surface2);color:var(--soft);font:inherit;font-size:12px;cursor:pointer}
+.back:hover{background:var(--surface3);color:var(--text)}
+.metric-table td.row-actions{display:flex;gap:6px;justify-content:flex-end}
+.metric-table td.row-actions button{height:26px;padding:0 9px;font-size:11.5px}
+.raw-json{max-height:340px;overflow:auto;margin:0;padding:12px;border-radius:9px;background:var(--surface2);color:var(--soft);font-size:11.5px;line-height:1.55}
+@media(max-width:680px){.setting-row{grid-template-columns:1fr}.domain-row{grid-template-columns:12px 1fr}.domain-over,.service-row small{display:none}}
