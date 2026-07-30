@@ -48,19 +48,20 @@
   --surface-3: #e6ede8;
   --border: #dbe5df;
   --border-strong: #c3d3ca;
-  --text: #0d1a15;
-  --text-soft: #46564e;
-  --text-muted: #5d6f66;
+  --text: #04100b;
+  --text-soft: #2b3a33;
+  --text-muted: #46554d;
   /* The accents are foreground colours here, not glows on a dark field: the dark-theme values are
-     legible on #07100d and washed out on white, so each one is darkened until it reads as text. */
-  --mint: #0b7a52;
-  --mint-dim: #dcf5e9;
-  --amber: #8a5a06;
-  --amber-dim: #fdf0d5;
-  --red: #b32328;
-  --red-dim: #fde3e4;
-  --blue: #1a4fd0;
-  --blue-dim: #e2ecff;
+     legible on #07100d and washed out on white, so each one is darkened until it reads as text
+     against its own dim background (a pill is coloured text on a tinted chip). */
+  --mint: #05593a;
+  --mint-dim: #d3f2e4;
+  --amber: #6b4503;
+  --amber-dim: #fbeaca;
+  --red: #96161c;
+  --red-dim: #fbdcdd;
+  --blue: #123fae;
+  --blue-dim: #dde8ff;
 }
 /* the primary button fills with --mint, so its label has to flip with the theme */
 :root[data-theme="light"] .btn[data-tone="primary"] { color: #ffffff; }
@@ -106,7 +107,9 @@ code, kbd, pre, .mono { font-family: var(--mono); }
 .nav a em { margin-left: auto; padding: 1px 7px; border-radius: 999px; background: var(--amber-dim); color: var(--amber); font-size: 10.5px; font-style: normal; font-weight: 700; }
 
 .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
-.link-out { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 12px; }
+/* Sidebar footer actions read as controls, not as hints — they were too faint to notice at
+   --text-muted, which is meant for labels nobody has to act on. */
+.link-out { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); color: var(--text); font-size: 12.5px; }
 .link-out:hover { background: var(--surface-2); color: var(--text); }
 .link-out[data-active="true"] { background: var(--surface-3); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
 
@@ -190,6 +193,8 @@ tbody tr[data-clickable="true"]:hover { background: var(--surface-2); cursor: po
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.mono, th.mono { font-family: var(--mono); font-size: 12px; }
 td.trunc { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* rows carrying help text need to breathe and to sit at the top of the cell */
+tbody td { vertical-align: top; }
 td.actions { text-align: right; white-space: nowrap; }
 td.actions > * + * { margin-left: 6px; }
 
@@ -242,6 +247,35 @@ td.actions > * + * { margin-left: 6px; }
 /* a button that reads as a link (filter-by-value inside a table cell) */
 .link-inline { color: var(--blue); font: inherit; text-align: left; }
 .link-inline:hover { text-decoration: underline; }
+
+/* vertical tabs (Configuration): a section list beside its table, not one endless scroll */
+.vtabs { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 20px; align-items: start; }
+.vtabs nav {
+  display: flex; flex-direction: column; gap: 3px; position: sticky; top: 74px;
+  padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+}
+.vtabs nav button {
+  display: flex; align-items: center; gap: 9px; padding: 11px 13px; border-radius: var(--radius-sm);
+  color: var(--text-soft); font-size: 13.5px; font-weight: 500; letter-spacing: -0.01em; text-align: left;
+}
+.vtabs nav button:hover { background: var(--surface-2); color: var(--text); }
+.vtabs nav button[data-active="true"] {
+  background: var(--surface-3); color: var(--text); font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--mint), inset 0 0 0 1px var(--border);
+}
+.vtabs nav button span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.vtabs nav button em {
+  min-width: 20px; padding: 2px 7px; border-radius: 999px; background: var(--amber-dim); color: var(--amber);
+  font-size: 11px; font-style: normal; font-weight: 700; text-align: center;
+}
+@media (max-width: 900px) {
+  .vtabs { grid-template-columns: 1fr; }
+  .vtabs nav { position: static; flex-direction: row; flex-wrap: wrap; }
+}
+
+/* one setting per row: name + what it does, then its editor */
+.setting-key { font-size: 12.5px; font-weight: 600; }
+.setting-help { margin: 4px 0 0; max-width: 62ch; color: var(--text-soft); font-size: 12px; line-height: 1.55; }
 
 /* editor rows in the admin screens */
 .row-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end; }

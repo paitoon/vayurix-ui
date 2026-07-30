@@ -242,6 +242,8 @@ export type DeadLetter = {
 };
 
 export type Overview = {
+  /** Deployment label + running binary version, for the console header. */
+  app: { name: string; version: string };
   open_cases: number;
   unassigned_cases: number;
   open_incidents: number;
@@ -290,7 +292,7 @@ export type SlaResult = {
   evaluated_at: string;
 };
 
-/** One editable knob: the value in force, the config.toml default, and whether they differ. */
+/** One editable knob: the value in force, the built-in default, and whether they differ. */
 export type Setting = {
   key: string;
   value: unknown;

@@ -91,7 +91,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </span>
           <div>
             <b>vayurix.ai</b>
-            <span>console</span>
+            {/* Which install is this, and which build is answering — the question you ask when
+                prod and staging are open in two tabs. */}
+            <span>
+              {summary.data?.overview
+                ? `${summary.data.overview.app.name} · v${summary.data.overview.app.version}`
+                : "console"}
+            </span>
           </div>
         </div>
 
