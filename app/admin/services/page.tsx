@@ -43,7 +43,7 @@ export default function ServicesPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Admin", href: "/admin/domains" }, { label: "Services" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "Services" }]}
       title="Services"
       intro="Watchers and Kafka workers, controlled at runtime. The desired state is stored, so a restart of the server keeps whatever you chose here."
       tools={

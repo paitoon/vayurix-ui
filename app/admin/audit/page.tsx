@@ -48,7 +48,7 @@ export default function AuditPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Admin", href: "/admin/domains" }, { label: "Audit trail" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "Audit trail" }]}
       title="Audit trail"
       intro="Who changed what, and who was told no. Reads are not recorded — they are noise with no consequence."
       tools={

@@ -115,7 +115,7 @@ export default function UsersPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Admin", href: "/admin/domains" }, { label: "Users" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "Users" }]}
       title="Users"
       intro="Console accounts, roles and domain scope. A data engineer sees their own domains; a manager configures on-call and SLA for theirs; an admin sees everything."
     >

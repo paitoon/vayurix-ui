@@ -65,7 +65,7 @@ export default function RunPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Pipeline runs", href: "/runs" }, { label: `#${id}` }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Pipeline runs", href: "/runs" }, { label: `#${id}` }]}
       title={state.data ? `${str(state.data.run.dag_id)}` : `Run #${id}`}
       intro={state.data ? str(state.data.run.dag_run_id) : undefined}
       tools={

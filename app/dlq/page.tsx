@@ -40,7 +40,7 @@ export default function DlqPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Dead letters" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Dead letters" }]}
       title="Dead letters"
       intro="Messages the pipeline could not process after three attempts. Fix the cause, then replay."
     >

@@ -11,6 +11,7 @@ import {
 } from "../../lib/api";
 import { Card, Empty, Pill, Resource, useFlash, useResource } from "../../lib/ui";
 import { Page } from "../../shell";
+import { SettingsCard } from "../settings/editor";
 
 type Draft = Partial<SlaPolicy>;
 
@@ -87,7 +88,7 @@ export default function SlaPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Admin", href: "/admin/team" }, { label: "SLA policies" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "SLA policies" }]}
       title="SLA policies"
       intro="Deadlines as cron expressions. The watcher evaluates them on its own schedule; you can also force a pass."
       tools={
@@ -98,6 +99,14 @@ export default function SlaPage() {
       }
     >
       {flash}
+      {/* The two system-wide knobs live here rather than in Configuration: everything about SLA in
+          one place, even though they are stored as ordinary settings like anything else. */}
+      <SettingsCard
+        title="Evaluation"
+        meta="applies to every policy"
+        prefix="rca_policy"
+        only={["rca_policy.sla_evaluate_interval_sec", "rca_policy.sla_catchup_days"]}
+      />
       <Resource state={state} label="Loading SLA…">
         {({ policies, results, domains }) => (
           <>

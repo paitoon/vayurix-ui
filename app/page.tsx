@@ -1,6 +1,7 @@
 "use client";
 
-// Triage — the Operate home screen. It answers one question: what needs a human right now?
+// Home — the screen the console opens on. It answers one question: what needs a human right now?
+// ("Triage" was the old name; it described the activity, not the place, and nobody looked for it.)
 // Unowned cases first (nobody is on it), then per-domain load, then the failure classes an
 // operator must not miss: parked dead letters and stopped services.
 
@@ -13,7 +14,7 @@ import { Page } from "./shell";
 const rank = (severity: string | null) =>
   ({ critical: 4, high: 3, medium: 2, low: 1 })[(severity ?? "").toLowerCase()] ?? 0;
 
-export default function TriagePage() {
+export default function HomePage() {
   const state = useResource(
     async () => {
       const [overview, cases, domains] = await Promise.all([
@@ -29,8 +30,8 @@ export default function TriagePage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate" }, { label: "Triage" }]}
-      title="Triage"
+      crumbs={[{ label: "Home" }]}
+      title="Home"
       intro="Open work across every domain, worst first. Cases with no owner are the ones still escalating."
     >
       <Resource state={state} label="Reading open work…">

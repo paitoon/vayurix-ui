@@ -86,7 +86,7 @@ export default function MetricsPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Admin", href: "/admin/domains" }, { label: "Metrics" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "Metrics" }]}
       title="Metrics"
       intro="The Prometheus endpoint, read directly. Per-DAG and per-task numbers cover the last 7 days and are computed on each scrape."
       tools={

@@ -68,7 +68,7 @@ export default function TeamPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Admin", href: "/admin/team" }, { label: "On-call" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "On-call" }]}
       title="On-call"
       intro="Who gets paged, in what order, per domain. Membership here is also what grants a data engineer access to that domain's work."
     >

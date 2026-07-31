@@ -10,14 +10,12 @@
 // known, closed set of values get a dropdown — guessing "admin_manager" from memory is not a test
 // anyone should have to pass.
 
-import { Loader2, PlugZap, RotateCcw, Save } from "lucide-react";
+import { Loader2, PlugZap } from "lucide-react";
 import { useState } from "react";
-import { api, listOf, without, type Json, type Setting } from "../../lib/api";
-import { Banner, Card, Pill, Resource, useFlash, useResource } from "../../lib/ui";
+import { api, listOf, type Json, type Setting } from "../../lib/api";
+import { Banner, Card, Resource, useResource } from "../../lib/ui";
 import { Page } from "../../shell";
-import { HELP } from "./help";
-
-const show = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
+import { SettingRows } from "./editor";
 
 // Reading order, not alphabetical: what the deployment *is*, then the machinery it talks to, then
 // the policies layered on top. Anything unlisted sorts to the end so a new section is visible
@@ -34,12 +32,15 @@ const SECTION_ORDER = [
   "kafka",
   "spark_history",
   "auth",
-  "rca_policy",
   "notification",
   "email",
   "line",
   "retention",
 ];
+
+/** Sections that have a screen of their own — showing them twice invites editing the stale copy.
+ *  `rca_policy` is split between RCA policy and SLA policies, both under Model. */
+const ELSEWHERE = ["rca_policy"];
 
 /** Sections whose settings point at something outside this process, so "does it answer?" is a
  *  question worth asking before saving and hoping. */
@@ -50,21 +51,8 @@ const rank = (section: string) => {
   return i === -1 ? SECTION_ORDER.length : i;
 };
 
-/** Settings whose values are a fixed set. Typing these by hand is how you learn they are validated. */
-const CHOICES: Record<string, string[]> = {
-  "agent.llm": ["azure_openai", "ollama"],
-  "embedding.provider": ["ollama", "azure_openai"],
-  "spark_history.env": ["standalone", "yarn", "k8s", "other"],
-  "notification.channel": ["line", "email"],
-  "auth.require_2fa_for": ["none", "admin_manager", "all"],
-  "auth.otp_fallback": ["deny", "password_only"],
-};
-
 export default function SettingsPage() {
   const state = useResource(async () => listOf<Setting>(await api.get("/settings"), "settings"), []);
-  const { flash, show: toast } = useFlash();
-  const [draft, setDraft] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
   const [section, setSection] = useState<string | null>(null);
   const [probe, setProbe] = useState<{ target: string; result: Json } | null>(null);
   const [probing, setProbing] = useState(false);
@@ -81,58 +69,15 @@ export default function SettingsPage() {
     setProbing(false);
   };
 
-  const save = async (s: Setting) => {
-    const raw = draft[s.key] ?? show(s.value);
-    // Match the shape of the default: a knob that was 12 must not silently become "12".
-    let value: unknown = raw;
-    if (typeof s.default === "number") {
-      const n = Number(raw);
-      if (Number.isNaN(n)) return toast("bad", `${s.key} expects a number`);
-      value = n;
-    } else if (typeof s.default === "boolean") {
-      value = raw === "true";
-    } else if (s.default !== null && typeof s.default === "object") {
-      try {
-        value = JSON.parse(raw);
-      } catch {
-        return toast("bad", `${s.key} expects JSON`);
-      }
-    }
-    setBusy(s.key);
-    try {
-      await api.put("/settings", { key: s.key, value });
-      toast("ok", `${s.key} saved.`);
-      setDraft(d => without(d, s.key));
-      await state.reload();
-    } catch (e) {
-      toast("bad", (e as Error).message);
-    }
-    setBusy(null);
-  };
-
-  const reset = async (s: Setting) => {
-    setBusy(s.key);
-    try {
-      await api.del(`/settings/${s.key}`);
-      toast("ok", `${s.key} reverted to its default.`);
-      setDraft(d => without(d, s.key));
-      await state.reload();
-    } catch (e) {
-      toast("bad", (e as Error).message);
-    }
-    setBusy(null);
-  };
-
   return (
     <Page
-      crumbs={[{ label: "Admin", href: "/admin/domains" }, { label: "Configuration" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "Configuration" }]}
       title="Configuration"
       intro="Runtime settings, stored in the database. Most apply immediately; start-time ones (Kafka, bind address, LLM endpoints) take effect on the next restart."
     >
-      {flash}
-
       <Resource state={state} label="Loading settings…">
-        {rows => {
+        {all => {
+          const rows = all.filter(r => !ELSEWHERE.includes(r.key.split(".")[0]));
           const sections = [...new Set(rows.map(r => r.key.split(".")[0]))].sort(
             (a, b) => rank(a) - rank(b) || a.localeCompare(b),
           );
@@ -177,80 +122,7 @@ export default function SettingsPage() {
                     </Banner>
                   </div>
                 )}
-                <table>
-                  <thead>
-                    <tr>
-                      <th>setting</th>
-                      <th>value</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mine.map(s => {
-                      const value = draft[s.key] ?? show(s.value);
-                      const dirty = draft[s.key] !== undefined && draft[s.key] !== show(s.value);
-                      const choices = CHOICES[s.key];
-                      return (
-                        <tr key={s.key}>
-                          <td>
-                            <b className="mono setting-key">{s.key.slice(current.length + 1)}</b>
-                            {s.overridden && (
-                              <>
-                                {" "}
-                                <Pill tone="amber">changed</Pill>
-                              </>
-                            )}
-                            {HELP[s.key] && <p className="setting-help">{HELP[s.key]}</p>}
-                          </td>
-                          <td>
-                            {typeof s.default === "boolean" ? (
-                              <select value={value} onChange={e => setDraft({ ...draft, [s.key]: e.target.value })}>
-                                <option value="true">true</option>
-                                <option value="false">false</option>
-                              </select>
-                            ) : choices ? (
-                              <select value={value} onChange={e => setDraft({ ...draft, [s.key]: e.target.value })}>
-                                {/* keep an unexpected stored value visible instead of silently
-                                    rewriting it to the first option */}
-                                {!choices.includes(value) && <option value={value}>{value}</option>}
-                                {choices.map(c => (
-                                  <option key={c} value={c}>
-                                    {c}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                value={value}
-                                inputMode={typeof s.default === "number" ? "decimal" : undefined}
-                                onChange={e => setDraft({ ...draft, [s.key]: e.target.value })}
-                              />
-                            )}
-                          </td>
-                          <td className="actions">
-                            <button
-                              className="btn btn-sm"
-                              data-tone={dirty ? "primary" : undefined}
-                              disabled={busy === s.key || !dirty}
-                              onClick={() => void save(s)}
-                            >
-                              <Save size={12} />
-                              Save
-                            </button>
-                            <button
-                              className="btn btn-sm"
-                              disabled={busy === s.key || !s.overridden}
-                              title="Revert to the default value"
-                              onClick={() => void reset(s)}
-                            >
-                              <RotateCcw size={12} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <SettingRows rows={mine} strip={current} onChanged={state.reload} />
               </Card>
             </div>
           );

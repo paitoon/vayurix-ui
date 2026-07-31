@@ -36,7 +36,7 @@ export default function IncidentsPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Incidents" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Incidents" }]}
       title="Incidents"
       intro="Cases grouped by cause — one incident can span many runs, entities, even domains."
       tools={

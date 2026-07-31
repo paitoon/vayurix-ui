@@ -18,7 +18,7 @@ export default function EventPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Event stream", href: "/events" }, { label: `#${id}` }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Event stream", href: "/events" }, { label: `#${id}` }]}
       title={`Event #${id}`}
       tools={
         <Link className="btn" href="/events">

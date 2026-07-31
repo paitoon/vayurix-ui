@@ -8,7 +8,7 @@ import { Check, Loader2, RotateCcw, UserCheck, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { api, relTime, severityTone, statusTone } from "../../lib/api";
+import { api, listOf, relTime, severityTone, statusTone, type TeamMember } from "../../lib/api";
 import { Card, Empty, Pill, Resource, useFlash, useResource } from "../../lib/ui";
 import { Page } from "../../shell";
 
@@ -28,7 +28,19 @@ type Detail = {
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const state = useResource(() => api.get<Detail>(`/cases/${id}`), [id], 30_000);
+  // The roster comes along for the ride: a manager assigning a case should pick a colleague from a
+  // list, not retype an address from memory (and a typo here means the notification goes nowhere).
+  const state = useResource(
+    async () => {
+      const [detail, team] = await Promise.all([
+        api.get<Detail>(`/cases/${id}`),
+        api.get("/team").catch(() => []),
+      ]);
+      return { detail, team: listOf<TeamMember>(team) };
+    },
+    [id],
+    30_000,
+  );
   const { show, flash } = useFlash();
   const [busy, setBusy] = useState<string | null>(null);
   const [owner, setOwner] = useState("");
@@ -48,14 +60,15 @@ export default function CaseDetailPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Cases", href: "/cases" }, { label: `#${id}` }]}
-      title={state.data ? state.data.case.rca_id : `Case ${id}`}
-      intro={state.data?.case.dag_id}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Cases", href: "/cases" }, { label: `#${id}` }]}
+      title={state.data ? state.data.detail.case.rca_id : `Case ${id}`}
+      intro={state.data?.detail.case.dag_id}
     >
       {flash}
       <Resource state={state} label="Loading case…">
-        {({ case: c, tasks, notifications }) => {
+        {({ detail: { case: c, tasks, notifications }, team }) => {
           const closed = (c.status ?? "").toLowerCase() === "closed";
+          const roster = team.filter(m => m.domain === c.domain && m.active);
           return (
             <>
               <div className="grid stats">
@@ -147,7 +160,19 @@ export default function CaseDetailPage() {
                     <div className="filters">
                       <label className="field" style={{ flex: "1 1 220px" }}>
                         <span>take / assign to</span>
-                        <input placeholder="owner@example.com" value={owner} onChange={e => setOwner(e.target.value)} />
+                        <input
+                          list="case-roster"
+                          placeholder="owner@example.com"
+                          value={owner}
+                          onChange={e => setOwner(e.target.value)}
+                        />
+                        <datalist id="case-roster">
+                          {roster.map(m => (
+                            <option key={m.id} value={m.email}>
+                              {`${m.name} · on call #${m.position}`}
+                            </option>
+                          ))}
+                        </datalist>
                       </label>
                       <button
                         className="btn"

@@ -18,7 +18,7 @@ export default function IncidentPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Incidents", href: "/incidents" }, { label: `#${id}` }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Incidents", href: "/incidents" }, { label: `#${id}` }]}
       title={`Incident #${id}`}
       intro={state.data ? state.data.incident.signature : undefined}
       tools={

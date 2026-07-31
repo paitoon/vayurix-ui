@@ -38,7 +38,7 @@ export default function CasesPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Cases" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Cases" }]}
       title="Cases"
       intro="One case per failing entity. The analysis, the evidence and the escalation history all hang off it."
       tools={

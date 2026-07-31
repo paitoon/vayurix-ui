@@ -8,8 +8,8 @@
 // hide themselves when no Airflow domain is active.
 
 import {
-  Activity, AlertTriangle, Boxes, Database, GitBranch, Inbox, KeyRound, LayoutDashboard, LogOut,
-  Moon, Radio, ScrollText, ShieldCheck, Sliders, Sun, Timer, UserCog, Users, Zap,
+  Activity, AlertTriangle, Boxes, Brain, Database, GitBranch, Inbox, KeyRound, LayoutDashboard,
+  LogOut, Moon, Radio, ScrollText, ShieldCheck, Sliders, Sun, Timer, UserCog, Users, Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -33,13 +33,14 @@ type Item = {
 };
 
 const NAV: Item[] = [
-  { href: "/", label: "Triage", icon: LayoutDashboard, group: "Respond" },
+  { href: "/", label: "Home", icon: LayoutDashboard, group: "Respond" },
   { href: "/cases", label: "Cases", icon: AlertTriangle, group: "Respond", badge: "cases" },
   { href: "/incidents", label: "Incidents", icon: Boxes, group: "Respond" },
   { href: "/events", label: "Event stream", icon: Radio, group: "Signals" },
   { href: "/runs", label: "Pipeline runs", icon: GitBranch, group: "Signals", pipelineOnly: true },
   { href: "/dlq", label: "Dead letters", icon: Inbox, group: "Signals", badge: "dlq", needs: "manage_platform" },
   { href: "/admin/team", label: "On-call", icon: Users, group: "Model", needs: "manage_team" },
+  { href: "/admin/rca", label: "RCA policy", icon: Brain, group: "Model", needs: "manage_team" },
   { href: "/admin/sla", label: "SLA policies", icon: Timer, group: "Model", needs: "manage_team" },
   { href: "/admin/domains", label: "Domains", icon: Database, group: "Model", needs: "manage_platform" },
   { href: "/admin/settings", label: "Configuration", icon: Sliders, group: "Runtime", needs: "manage_platform" },

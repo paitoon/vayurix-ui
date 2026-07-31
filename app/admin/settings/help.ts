@@ -101,6 +101,9 @@ export const HELP: Record<string, string> = {
   "notification.public_base_url": "URL the action buttons in notifications point at. It must be reachable from a phone, so localhost will not do.",
   "notification.followup_first_delay_min": "Delay before the first reminder on a case nobody has closed.",
   "notification.followup_interval_hours": "Gap between later reminders.",
+  "notification.followup_max_before_manager": "Reminders the owner may ignore before the domain's manager is told the case is stuck. Reminders continue either way.",
+  "notification.manager_reminder_min": "How often managers are re-asked while a case still has no owner. There is no rung above them, so this repeat is the only pressure left.",
+  "notification.orphan_grace_min": "How long a case with no notifications at all waits before the watcher rescues it — the safety net for a worker that died mid-send.",
 
   // ---- retention
   "retention.retention_months": "How long logs, dead letters and run history are kept before being dropped.",

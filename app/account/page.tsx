@@ -40,7 +40,7 @@ export default function AccountPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Account" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Account" }]}
       title={me.name === me.email ? me.email : me.name}
       intro="Your credentials and the scope the API grants you."
     >

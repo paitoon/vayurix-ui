@@ -38,7 +38,7 @@ export default function RunsPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Pipeline runs" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Pipeline runs" }]}
       title="Pipeline runs"
       intro="DAG runs as vayurix saw them, with the case each failure produced."
       tools={

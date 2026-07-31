@@ -65,7 +65,7 @@ export default function DomainsPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Admin", href: "/admin/domains" }, { label: "Domains" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "Domains" }]}
       title="Domains"
       intro="Each domain is a world with its own cases, on-call chain and SLA. Codes are used in URLs, Kafka keys and log lines, so they stay lowercase and boring."
       tools={
@@ -231,7 +231,9 @@ export default function DomainsPage() {
       <Banner tone="info">
         Pausing a domain (active = paused) makes <code>/ingest</code> reject its events instead of
         opening cases nobody is on call for. Deleting is refused while cases, events or policies
-        still reference it.
+        still reference it. <b>Escalation</b> is how long one person on call has before the case moves
+        to the next — blank inherits <code>notification.escalation_timeout_min</code>; once the whole
+        chain is exhausted the case goes to that domain&apos;s DE managers to assign.
       </Banner>
     </Page>
   );

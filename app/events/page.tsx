@@ -37,7 +37,7 @@ export default function EventsPage() {
 
   return (
     <Page
-      crumbs={[{ label: "Operate", href: "/" }, { label: "Event stream" }]}
+      crumbs={[{ label: "Home", href: "/" }, { label: "Event stream" }]}
       title="Event stream"
       intro="Alerts pushed in by external monitors. A failing one opens a case; a recovery closes it."
       tools={
