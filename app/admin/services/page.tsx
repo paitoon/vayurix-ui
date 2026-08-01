@@ -15,6 +15,7 @@ const WHAT: Record<string, string> = {
   sla: "evaluates deadline policies and records outcomes",
   retention: "drops log partitions and graph nodes past the retention window",
   lineage: "re-syncs Airflow asset lineage into the graph",
+  reconcile: "asks Airflow for failures whose callback never reached us, and injects them",
   ingest: "consumes pipeline.events → normalises runs",
   collect: "fetches Airflow/Spark logs for a failing run",
   rca: "asks the model for a root cause, then notifies",

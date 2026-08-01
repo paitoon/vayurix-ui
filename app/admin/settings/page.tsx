@@ -29,6 +29,7 @@ const SECTION_ORDER = [
   "azure_openai",
   "ollama",
   "airflow",
+  "k8s",
   "kafka",
   "spark_history",
   "auth",
@@ -44,7 +45,7 @@ const ELSEWHERE = ["rca_policy"];
 
 /** Sections whose settings point at something outside this process, so "does it answer?" is a
  *  question worth asking before saving and hoping. */
-const CHECKABLE = ["airflow", "kafka", "spark_history"];
+const CHECKABLE = ["airflow", "k8s", "kafka", "spark_history"];
 
 const rank = (section: string) => {
   const i = SECTION_ORDER.indexOf(section.toLowerCase());

@@ -19,7 +19,7 @@ export const HELP: Record<string, string> = {
   "worker.shutdown_grace_sec": "Seconds a worker gets to leave its Kafka group cleanly after SIGTERM before being killed outright.",
 
   // ---- agent
-  "agent.llm": "Which model backend performs root-cause analysis. azure_openai needs a key in .env; ollama runs locally.",
+  "agent.llm": "Which model backend performs root-cause analysis. azure_openai needs a key in .env; ollama runs locally. Takes effect when the workers restart — the client is built once at startup, not per analysis.",
 
   // ---- embedding
   "embedding.provider": "Which backend produces embeddings for search and duplicate detection. Changing this after data exists mixes vector spaces and breaks similarity — re-embed if you switch.",
@@ -49,6 +49,18 @@ export const HELP: Record<string, string> = {
   "airflow.log_max_wait_sec": "How long to keep waiting for a task log that Airflow has not finished writing.",
   "airflow.log_poll_sec": "Gap between those attempts.",
   "airflow.lineage_resync_hours": "How often asset lineage is re-read into the graph. 0 = at startup and on demand only.",
+  "airflow.reconcile_interval_min": "How often to ask Airflow for failures it never told us about. Airflow callbacks are best-effort — a pod killed before its callback runs, or a lost POST, would otherwise be invisible.",
+  "airflow.reconcile_lookback_min": "How far back each of those passes looks. Keep it several intervals wide so a missed pass or a restart still gets covered.",
+  "airflow.reconcile_max_per_pass": "Ceiling on task instances examined per pass, so a wide window cannot turn into a scan of Airflow's whole history.",
+
+  // ---- k8s
+  "k8s.enabled": "Read pod status and events from Kubernetes when a task fails. Only useful if Airflow runs on Kubernetes — it explains the failures a task log cannot: OOM kills, pods that were never scheduled, missing images.",
+  "k8s.api_url": "API server root. Inside the cluster this is https://kubernetes.default.svc; outside it, whatever address the API server is published on.",
+  "k8s.namespace": "The one namespace worker pods run in. Also the limit of what the token is allowed to read, so keep it narrow.",
+  "k8s.ca_path": "PEM certificate authority used to verify the API server. Empty falls back to the system trust store, which almost never works for a self-hosted cluster.",
+  "k8s.token_path": "Where to read the ServiceAccount token when K8S_TOKEN is not set in .env. The path shown is the standard in-cluster one.",
+  "k8s.event_limit": "Events kept per pod. They are already scoped to one pod, so this only caps something stuck in a long back-off loop.",
+  "k8s.pod_log_tail_lines": "Lines of the container's own log to keep. Usually a duplicate of the Airflow log — but when a task is killed mid-flight, Airflow never receives the tail and the pod is the only copy. 0 turns it off.",
 
   // ---- kafka
   "kafka.bootstrap_servers": "Broker list, host:port[,host:port]. Takes effect on restart.",
