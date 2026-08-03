@@ -298,6 +298,8 @@ export type Setting = {
   value: unknown;
   default: unknown;
   overridden: boolean;
+  /** The allowed values, when the backend says this key has a fixed set. Null otherwise. */
+  options: string[] | null;
 };
 
 export type Service = { name: string; running: boolean; start: boolean };

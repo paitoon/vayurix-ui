@@ -26,8 +26,6 @@ const SECTION_ORDER = [
   "worker",
   "agent",
   "embedding",
-  "azure_openai",
-  "ollama",
   "airflow",
   "k8s",
   "kafka",
@@ -39,13 +37,36 @@ const SECTION_ORDER = [
   "retention",
 ];
 
+/** One provider's settings, keyed by the value of `agent.llm` that selects it. */
+const PROVIDER_SECTION: Record<string, string> = {
+  azure_openai: "azure_openai",
+  anthropic: "anthropic",
+  openai_compat: "openai_compat",
+  ollama: "ollama",
+};
+
 /** Sections that have a screen of their own — showing them twice invites editing the stale copy.
- *  `rca_policy` is split between RCA policy and SLA policies, both under Model. */
-const ELSEWHERE = ["rca_policy"];
+ *  `rca_policy` is split between RCA policy and SLA policies, both under Model.
+ *
+ *  The provider sections are here because they are shown inside `agent` instead: only one of them
+ *  is in use at a time, and four tabs of which three are inert is four decisions where there is
+ *  one. Editing `anthropic` while `agent.llm` says `ollama` is work with no effect, and a tab that
+ *  invites it is the interface's fault. */
+const ELSEWHERE = ["rca_policy", ...Object.values(PROVIDER_SECTION)];
 
 /** Sections whose settings point at something outside this process, so "does it answer?" is a
- *  question worth asking before saving and hoping. */
-const CHECKABLE = ["airflow", "k8s", "kafka", "spark_history"];
+ *  question worth asking before saving and hoping.
+ *
+ *  `agent` maps to the `llm` target rather than to itself: the thing worth testing is whichever
+ *  provider `agent.llm` selects, and putting the button on `anthropic` or `openai_compat` would
+ *  offer to test a section that may not be the one in use. */
+const CHECKABLE: Record<string, string> = {
+  airflow: "airflow",
+  k8s: "k8s",
+  kafka: "kafka",
+  spark_history: "spark_history",
+  agent: "llm",
+};
 
 const rank = (section: string) => {
   const i = SECTION_ORDER.indexOf(section.toLowerCase());
@@ -57,6 +78,8 @@ export default function SettingsPage() {
   const [section, setSection] = useState<string | null>(null);
   const [probe, setProbe] = useState<{ target: string; result: Json } | null>(null);
   const [probing, setProbing] = useState(false);
+  /** The provider picked in the combo but not yet saved, so its settings can appear immediately. */
+  const [pendingLlm, setPendingLlm] = useState<string | null>(null);
 
   const check = async (target: string) => {
     setProbing(true);
@@ -105,8 +128,12 @@ export default function SettingsPage() {
                 title={current}
                 meta={`${mine.length} setting${mine.length === 1 ? "" : "s"}`}
                 actions={
-                  CHECKABLE.includes(current) && (
-                    <button className="btn btn-sm" disabled={probing} onClick={() => void check(current)}>
+                  CHECKABLE[current] && (
+                    <button
+                      className="btn btn-sm"
+                      disabled={probing}
+                      onClick={() => void check(CHECKABLE[current])}
+                    >
                       {probing ? <Loader2 className="spin" size={12} /> : <PlugZap size={12} />}
                       Test connection
                     </button>
@@ -114,7 +141,10 @@ export default function SettingsPage() {
                 }
                 tight
               >
-                {probe?.target === current && (
+                {/* `probe &&` first, deliberately. `probe?.target === CHECKABLE[current]` compares
+                    undefined to undefined on any section without a test button and passes, which
+                    rendered this block with no probe to read. */}
+                {probe && probe.target === CHECKABLE[current] && (
                   <div style={{ padding: "12px 16px 0" }}>
                     <Banner tone={probe.result.ok ? "ok" : "bad"}>
                       {probe.result.ok
@@ -123,7 +153,47 @@ export default function SettingsPage() {
                     </Banner>
                   </div>
                 )}
-                <SettingRows rows={mine} strip={current} onChanged={state.reload} />
+                <SettingRows
+                  rows={mine}
+                  strip={current}
+                  onChanged={state.reload}
+                  onDraft={(key, value) => key === "agent.llm" && setPendingLlm(value)}
+                />
+
+                {/* The selected provider's own settings, in the same card. Only one provider is ever
+                    in use, so this is the only set worth showing — and it follows the combo before
+                    you save, because otherwise the way to find out what a provider needs is to
+                    commit to it first. */}
+                {current === "agent" &&
+                  (() => {
+                    const saved = String(
+                      all.find(r => r.key === "agent.llm")?.value ?? "",
+                    );
+                    const provider = pendingLlm ?? saved;
+                    const section = PROVIDER_SECTION[provider];
+                    const providerRows = section
+                      ? all.filter(r => r.key.startsWith(`${section}.`))
+                      : [];
+                    if (!providerRows.length) return null;
+                    return (
+                      <>
+                        <div className="setting-subhead">
+                          <b className="mono">{provider}</b>
+                          {provider !== saved && (
+                            <>
+                              {" "}
+                              <em>— save agent.llm to switch to it</em>
+                            </>
+                          )}
+                        </div>
+                        <SettingRows
+                          rows={providerRows}
+                          strip={section}
+                          onChanged={state.reload}
+                        />
+                      </>
+                    );
+                  })()}
               </Card>
             </div>
           );

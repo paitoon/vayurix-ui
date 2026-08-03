@@ -277,6 +277,14 @@ td.actions > * + * { margin-left: 6px; }
 .setting-key { font-size: 12.5px; font-weight: 600; }
 .setting-help { margin: 4px 0 0; max-width: 62ch; color: var(--text-soft); font-size: 12px; line-height: 1.55; }
 
+/* Divider between a section's own settings and the selected LLM provider's, inside one card. A rule
+   rather than a second card: they are one decision, and two cards would read as two subjects. */
+.setting-subhead {
+  padding: 14px 16px 6px; margin-top: 6px; border-top: 1px solid var(--border);
+  color: var(--text-soft); font-size: 12px;
+}
+.setting-subhead em { color: var(--text-muted); font-style: normal; }
+
 /* editor rows in the admin screens */
 .row-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end; }
 .row-form .btn { height: 32px; }

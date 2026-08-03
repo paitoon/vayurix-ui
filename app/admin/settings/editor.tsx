@@ -14,30 +14,36 @@ import { HELP } from "./help";
 
 const show = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
 
-/** Settings whose values are a fixed set. Typing these by hand is how you learn they are validated. */
-export const CHOICES: Record<string, string[]> = {
-  "agent.llm": ["azure_openai", "ollama"],
-  "embedding.provider": ["ollama", "azure_openai"],
-  "spark_history.env": ["standalone", "yarn", "k8s", "other"],
-  "notification.channel": ["line", "email"],
-  "auth.require_2fa_for": ["none", "admin_manager", "all"],
-  "auth.otp_fallback": ["deny", "password_only"],
-};
+// Which settings are a fixed set, and what the values are, now comes from the API — `Setting.options`.
+// It used to be a table here, which meant the list the operator could pick from and the list the
+// server would accept were two lists maintained by hand. Adding an LLM provider had to be remembered
+// in three places, and the symptom of forgetting this one was a value that validated fine and could
+// not be selected.
 
 /** One row per setting: name + what it does, its editor, save/reset. */
 export function SettingRows({
   rows,
   strip,
   onChanged,
+  onDraft,
 }: {
   rows: Setting[];
   /** Prefix to hide from the displayed name (the section, when the section is the heading). */
   strip?: string;
   onChanged: () => Promise<unknown>;
+  /** Fires as a value is edited, before it is saved. Lets a caller react to a pending choice —
+   *  Configuration uses it to reveal the selected LLM provider's settings straight away, rather
+   *  than making you save first to find out what else you need to fill in. */
+  onDraft?: (key: string, value: string) => void;
 }) {
   const { flash, show: toast } = useFlash();
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+
+  const edit = (key: string, value: string) => {
+    setDraft(d => ({ ...d, [key]: value }));
+    onDraft?.(key, value);
+  };
 
   const save = async (s: Setting) => {
     const raw = draft[s.key] ?? show(s.value);
@@ -96,7 +102,7 @@ export function SettingRows({
           {rows.map(s => {
             const value = draft[s.key] ?? show(s.value);
             const dirty = draft[s.key] !== undefined && draft[s.key] !== show(s.value);
-            const choices = CHOICES[s.key];
+            const choices = s.options ?? undefined;
             const name = strip && s.key.startsWith(`${strip}.`) ? s.key.slice(strip.length + 1) : s.key;
             return (
               <tr key={s.key}>
@@ -112,12 +118,12 @@ export function SettingRows({
                 </td>
                 <td>
                   {typeof s.default === "boolean" ? (
-                    <select value={value} onChange={e => setDraft({ ...draft, [s.key]: e.target.value })}>
+                    <select value={value} onChange={e => edit(s.key, e.target.value)}>
                       <option value="true">true</option>
                       <option value="false">false</option>
                     </select>
                   ) : choices ? (
-                    <select value={value} onChange={e => setDraft({ ...draft, [s.key]: e.target.value })}>
+                    <select value={value} onChange={e => edit(s.key, e.target.value)}>
                       {/* keep an unexpected stored value visible instead of silently rewriting it */}
                       {!choices.includes(value) && <option value={value}>{value}</option>}
                       {choices.map(c => (
@@ -130,7 +136,7 @@ export function SettingRows({
                     <input
                       value={value}
                       inputMode={typeof s.default === "number" ? "decimal" : undefined}
-                      onChange={e => setDraft({ ...draft, [s.key]: e.target.value })}
+                      onChange={e => edit(s.key, e.target.value)}
                     />
                   )}
                 </td>

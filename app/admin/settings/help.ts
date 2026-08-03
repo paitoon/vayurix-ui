@@ -19,7 +19,22 @@ export const HELP: Record<string, string> = {
   "worker.shutdown_grace_sec": "Seconds a worker gets to leave its Kafka group cleanly after SIGTERM before being killed outright.",
 
   // ---- agent
-  "agent.llm": "Which model backend performs root-cause analysis. azure_openai needs a key in .env; ollama runs locally. Takes effect when the workers restart — the client is built once at startup, not per analysis.",
+  "agent.llm": "Which model backend performs root-cause analysis. Pick openai_compat for any vendor speaking the OpenAI /chat/completions shape — that covers OpenAI, Groq, Together, OpenRouter, vLLM and local servers without a code change. Takes effect when the workers restart: the client is built once at startup, not per analysis.",
+
+  // ---- anthropic
+  "anthropic.base_url": "API root. Change only for a proxy or a regional endpoint. The key is ANTHROPIC_API_KEY in .env.",
+  "anthropic.model": "Model id, e.g. claude-sonnet-5.",
+  "anthropic.api_version": "Date-versioned API contract (the anthropic-version header), not a client version. Change only when Anthropic retires the one in use.",
+  "anthropic.max_tokens": "Required by the Messages API, and your per-analysis cost ceiling. Too low truncates the answer mid-sentence, which arrives as a parse failure.",
+
+  // ---- openai_compat
+  "openai_compat.base_url": "Root URL without the path, e.g. https://api.groq.com/openai/v1. Any server accepting OpenAI-shaped chat requests works here.",
+  "openai_compat.chat_path": "Appended to the base URL. Almost always /chat/completions; separate because some deployments mount it elsewhere.",
+  "openai_compat.model": "Model id as that provider names it.",
+  "openai_compat.auth_style": "How the key is sent: bearer = Authorization: Bearer, api_key = an api-key header (Azure style), none = no auth, for a local server.",
+  "openai_compat.api_key_env": "Name of the environment variable holding the key — not the key itself. Lets you point at any provider without a new hardcoded variable name, and keeps the secret out of the database.",
+  "openai_compat.max_tokens": "0 omits the field entirely, which some servers require. Otherwise a cost ceiling per analysis.",
+  "openai_compat.json_mode": "Ask the server to constrain output to valid JSON. Far more reliable than asking in the prompt — turn it off only for a provider that rejects the field, and expect occasional parse failures afterwards.",
 
   // ---- embedding
   "embedding.provider": "Which backend produces embeddings for search and duplicate detection. Changing this after data exists mixes vector spaces and breaks similarity — re-embed if you switch.",
