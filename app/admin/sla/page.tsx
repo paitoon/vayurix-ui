@@ -367,10 +367,13 @@ export default function SlaPage() {
               )}
             </Card>
 
-            {/* Covers both kinds — a policy needs >=5 recent samples (runs+results for deadline,
-                recovered episodes for mttr) before a recommendation is worth writing
-                (sla::TUNING_MIN_SAMPLES), so a quiet new policy showing nothing here is expected,
-                not broken. */}
+            {/* Covers three cases: adjusting an existing deadline or mttr policy, and (row shows
+                "new mttr policy") suggesting one from scratch for a dag with failure history but
+                no SLA at all yet — dags in this deployment are asset-triggered with no cron
+                schedule to bootstrap a deadline from, so bootstrap is mttr-only. Any of the three
+                needs >=5 recent samples before a recommendation is worth writing
+                (rca_policy.sla_tuning_min_samples), so a quiet dag showing nothing here is
+                expected, not broken. */}
             <Card title="Tuning recommendations" meta={`${tuning.length}`} tight>
               {tuning.length === 0 ? (
                 <Empty>No recommendations yet — needs at least a few days of history per dag.</Empty>
@@ -397,10 +400,13 @@ export default function SlaPage() {
                       const cron = t.recommendations?.suggested_cron;
                       const threshold = t.recommendations?.suggested_threshold_min;
                       const applicable = isMttr ? threshold != null : cron != null;
+                      // A bootstrap suggestion (no existing policy) always carries this key as
+                      // null — an adjustment to an existing policy carries its current number.
+                      const isBootstrap = isMttr && t.metrics_snapshot?.current_mttr_threshold_min === null;
                       return (
                         <tr key={t.id}>
                           <td className="mono trunc">{t.dag_id}</td>
-                          <td className="mono">{isMttr ? "threshold (min)" : "cron"}</td>
+                          <td className="mono">{isBootstrap ? "new mttr policy" : isMttr ? "threshold (min)" : "cron"}</td>
                           <td>{prose}</td>
                           <td>
                             <Pill tone={statusTone(t.recommendations?.confidence)}>
@@ -429,13 +435,17 @@ export default function SlaPage() {
                                   data-tone={applicable ? "primary" : undefined}
                                   disabled={!applicable || busy === `__apply${t.id}`}
                                   title={
-                                    isMttr
+                                    isBootstrap
                                       ? threshold != null
-                                        ? `set mttr_threshold_min to ${threshold}`
-                                        : "no machine-applicable suggestion — edit the policy directly"
-                                      : cron
-                                        ? `set deadline_cron to "${cron}"`
-                                        : "no machine-applicable suggestion — edit the policy directly"
+                                        ? `create a new mttr policy for ${t.dag_id} with threshold ${threshold} min`
+                                        : "no machine-applicable suggestion — this dag may not need an SLA yet"
+                                      : isMttr
+                                        ? threshold != null
+                                          ? `set mttr_threshold_min to ${threshold}`
+                                          : "no machine-applicable suggestion — edit the policy directly"
+                                        : cron
+                                          ? `set deadline_cron to "${cron}"`
+                                          : "no machine-applicable suggestion — edit the policy directly"
                                   }
                                   onClick={() => void applyTuning(t)}
                                 >
