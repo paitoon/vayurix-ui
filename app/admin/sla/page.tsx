@@ -6,10 +6,11 @@
 //   mttr — a threshold in minutes: "once this fails, it must recover (next success) within N
 //     minutes". No cron/timezone involved — the clock starts at the failed run's end time.
 
-import { PlayCircle, Plus, Save, Trash2 } from "lucide-react";
+import { PlayCircle, Plus, Save, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
-  api, duration, listOf, relTime, statusTone, without, type Domain, type SlaPolicy, type SlaResult,
+  api, duration, listOf, relTime, statusTone, without,
+  type Domain, type SlaPolicy, type SlaResult, type SlaTuning,
 } from "../../lib/api";
 import { Card, Empty, Pill, Resource, useFlash, useResource } from "../../lib/ui";
 import { Page } from "../../shell";
@@ -19,15 +20,17 @@ type Draft = Partial<SlaPolicy>;
 
 export default function SlaPage() {
   const state = useResource(async () => {
-    const [policies, results, domains] = await Promise.all([
+    const [policies, results, domains, tuning] = await Promise.all([
       api.get("/sla/policies"),
       api.get("/sla/results?days=7&limit=100").catch(() => []),
       api.get("/domains?active=true").catch(() => []),
+      api.get("/sla/tuning?limit=50").catch(() => []),
     ]);
     return {
       policies: listOf<SlaPolicy>(policies),
       results: listOf<SlaResult>(results),
       domains: listOf<Domain>(domains),
+      tuning: listOf<SlaTuning>(tuning),
     };
   }, [], 60_000);
   const { flash, show } = useFlash();
@@ -88,29 +91,52 @@ export default function SlaPage() {
     setBusy(null);
   };
 
+  const tuneNow = async () => {
+    setBusy("__tune");
+    try {
+      // Calls the LLM per due policy — can take a while, unlike evaluate.
+      const res = await api.post<{ tuned: number }>("/sla/tuning/run");
+      show("ok", `wrote ${res.tuned} tuning recommendation(s).`);
+      await state.reload();
+    } catch (e) {
+      show("bad", (e as Error).message);
+    }
+    setBusy(null);
+  };
+
   return (
     <Page
       crumbs={[{ label: "Home", href: "/" }, { label: "Admin" }, { label: "SLA policies" }]}
       title="SLA policies"
-      intro="Deadlines as cron expressions. The watcher evaluates them on its own schedule; you can also force a pass."
+      intro="Deadline and MTTR policies. The watcher evaluates and tunes them on its own schedule; you can also force a pass."
       tools={
-        <button className="btn" disabled={busy === "__eval"} onClick={() => void evaluateNow()}>
-          <PlayCircle size={15} />
-          Evaluate now
-        </button>
+        <>
+          <button className="btn" disabled={busy === "__eval"} onClick={() => void evaluateNow()}>
+            <PlayCircle size={15} />
+            Evaluate now
+          </button>
+          <button className="btn" disabled={busy === "__tune"} onClick={() => void tuneNow()}>
+            <Sparkles size={15} />
+            Tune now
+          </button>
+        </>
       }
     >
       {flash}
-      {/* The two system-wide knobs live here rather than in Configuration: everything about SLA in
-          one place, even though they are stored as ordinary settings like anything else. */}
+      {/* The three system-wide knobs live here rather than in Configuration: everything about SLA
+          in one place, even though they are stored as ordinary settings like anything else. */}
       <SettingsCard
         title="Evaluation"
         meta="applies to every policy"
         prefix="rca_policy"
-        only={["rca_policy.sla_evaluate_interval_sec", "rca_policy.sla_catchup_days"]}
+        only={[
+          "rca_policy.sla_evaluate_interval_sec",
+          "rca_policy.sla_catchup_days",
+          "rca_policy.sla_tuning_interval_days",
+        ]}
       />
       <Resource state={state} label="Loading SLA…">
-        {({ policies, results, domains }) => (
+        {({ policies, results, domains, tuning }) => (
           <>
             <Card title="New policy">
               <div className="row-form">
@@ -306,6 +332,44 @@ export default function SlaPage() {
                           <Pill tone={statusTone(r.run_status)}>{r.run_status ?? "—"}</Pill>
                         </td>
                         <td>{relTime(r.evaluated_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
+
+            {/* deadline-kind only — a policy needs >=5 recent runs and results before a
+                recommendation is worth writing (sla::TUNING_MIN_SAMPLES), so a quiet new policy
+                showing nothing here is expected, not broken. */}
+            <Card title="Tuning recommendations" meta={`${tuning.length}`} tight>
+              {tuning.length === 0 ? (
+                <Empty>No recommendations yet — needs at least a few days of history per dag.</Empty>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>dag</th>
+                      <th>recommendation</th>
+                      <th>confidence</th>
+                      <th>summary</th>
+                      <th>model</th>
+                      <th>written</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tuning.map(t => (
+                      <tr key={t.id}>
+                        <td className="mono trunc">{t.dag_id}</td>
+                        <td>{t.recommendations?.recommendation ?? "—"}</td>
+                        <td>
+                          <Pill tone={statusTone(t.recommendations?.confidence)}>
+                            {t.recommendations?.confidence ?? "—"}
+                          </Pill>
+                        </td>
+                        <td className="trunc">{t.summary ?? "—"}</td>
+                        <td className="mono">{t.model ?? "—"}</td>
+                        <td>{relTime(t.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>

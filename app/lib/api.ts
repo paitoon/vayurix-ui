@@ -300,6 +300,17 @@ export type SlaResult = {
   evaluated_at: string;
 };
 
+export type SlaTuning = {
+  id: number;
+  dag_id: string;
+  model: string | null;
+  summary: string | null;
+  // Shape written by sla::save_tuning: { recommendation: string, confidence: string }.
+  recommendations: { recommendation?: string; confidence?: string } | null;
+  metrics_snapshot: Record<string, unknown> | null;
+  created_at: string;
+};
+
 /** One editable knob: the value in force, the built-in default, and whether they differ. */
 export type Setting = {
   key: string;
