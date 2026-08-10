@@ -318,6 +318,8 @@ export type SlaTuning = {
   metrics_snapshot: Record<string, unknown> | null;
   // Set once by POST /sla/tuning/{id}/apply; null = never applied.
   applied_at: string | null;
+  // Set once by POST /sla/tuning/{id}/dismiss; mutually exclusive with applied_at.
+  dismissed_at: string | null;
   created_at: string;
 };
 

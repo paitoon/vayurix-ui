@@ -37,6 +37,7 @@ export default function SlaPage() {
   const [edit, setEdit] = useState<Record<number, Draft>>({});
   const [neu, setNeu] = useState<Draft>({ timezone: "Asia/Bangkok", kind: "deadline" });
   const [busy, setBusy] = useState<number | string | null>(null);
+  const [metrics, setMetrics] = useState<SlaTuning | null>(null);
 
   const patch = (id: number, part: Draft) => setEdit({ ...edit, [id]: { ...edit[id], ...part } });
 
@@ -96,6 +97,18 @@ export default function SlaPage() {
     try {
       await api.post(`/sla/tuning/${t.id}/apply`);
       show("ok", `applied to ${t.dag_id}.`);
+      await state.reload();
+    } catch (e) {
+      show("bad", (e as Error).message);
+    }
+    setBusy(null);
+  };
+
+  const dismissTuning = async (t: SlaTuning) => {
+    setBusy(`__dismiss${t.id}`);
+    try {
+      await api.post(`/sla/tuning/${t.id}/dismiss`);
+      show("ok", `dismissed for ${t.dag_id}.`);
       await state.reload();
     } catch (e) {
       show("bad", (e as Error).message);
@@ -395,28 +408,46 @@ export default function SlaPage() {
                           <td className="mono">{t.model ?? "—"}</td>
                           <td>{relTime(t.created_at)}</td>
                           <td className="actions">
+                            <button className="btn btn-sm" onClick={() => setMetrics(t)}>
+                              Metrics
+                            </button>
                             {t.applied_at ? (
                               <span title={`applied ${relTime(t.applied_at)}`}>
                                 <Pill tone="blue">applied</Pill>
                               </span>
+                            ) : t.dismissed_at ? (
+                              <span title={`dismissed ${relTime(t.dismissed_at)}`}>
+                                <Pill tone="muted">dismissed</Pill>
+                              </span>
                             ) : (
-                              <button
-                                className="btn btn-sm"
-                                data-tone={applicable ? "primary" : undefined}
-                                disabled={!applicable || busy === `__apply${t.id}`}
-                                title={
-                                  isMttr
-                                    ? threshold != null
-                                      ? `set mttr_threshold_min to ${threshold}`
-                                      : "no machine-applicable suggestion — edit the policy directly"
-                                    : cron
-                                      ? `set deadline_cron to "${cron}"`
-                                      : "no machine-applicable suggestion — edit the policy directly"
-                                }
-                                onClick={() => void applyTuning(t)}
-                              >
-                                Apply
-                              </button>
+                              <>
+                                <button
+                                  className="btn btn-sm"
+                                  data-tone={applicable ? "primary" : undefined}
+                                  disabled={!applicable || busy === `__apply${t.id}`}
+                                  title={
+                                    isMttr
+                                      ? threshold != null
+                                        ? `set mttr_threshold_min to ${threshold}`
+                                        : "no machine-applicable suggestion — edit the policy directly"
+                                      : cron
+                                        ? `set deadline_cron to "${cron}"`
+                                        : "no machine-applicable suggestion — edit the policy directly"
+                                  }
+                                  onClick={() => void applyTuning(t)}
+                                >
+                                  Apply
+                                </button>
+                                <button
+                                  className="btn btn-sm"
+                                  data-tone="ghost"
+                                  disabled={busy === `__dismiss${t.id}`}
+                                  title="mark reviewed — decline this suggestion"
+                                  onClick={() => void dismissTuning(t)}
+                                >
+                                  Dismiss
+                                </button>
+                              </>
                             )}
                           </td>
                         </tr>
@@ -426,6 +457,19 @@ export default function SlaPage() {
                 </table>
               )}
             </Card>
+
+            {metrics && (
+              <Card
+                title={`Metrics — ${metrics.dag_id}`}
+                actions={
+                  <button className="btn btn-sm" data-tone="ghost" onClick={() => setMetrics(null)}>
+                    Close
+                  </button>
+                }
+              >
+                <pre className="evidence">{JSON.stringify(metrics.metrics_snapshot, null, 2)}</pre>
+              </Card>
+            )}
           </>
         )}
       </Resource>
