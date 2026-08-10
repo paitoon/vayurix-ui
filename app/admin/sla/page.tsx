@@ -1,8 +1,10 @@
 "use client";
 
-// Deadline policies and the outcomes they produced. A policy is a cron expression in a timezone —
-// "this must have finished by then" — so both are shown on every row: a deadline without its
-// timezone is ambiguous twice a year.
+// SLA policies and the outcomes they produced. Two kinds:
+//   deadline — a cron expression in a timezone: "this must have finished by then". A deadline
+//     without its timezone is ambiguous twice a year, so both are always shown together.
+//   mttr — a threshold in minutes: "once this fails, it must recover (next success) within N
+//     minutes". No cron/timezone involved — the clock starts at the failed run's end time.
 
 import { PlayCircle, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -78,7 +80,7 @@ export default function SlaPage() {
     setBusy("__eval");
     try {
       const res = await api.post<{ evaluated: number }>("/sla/evaluate");
-      show("ok", `evaluated ${res.evaluated} deadline(s).`);
+      show("ok", `evaluated ${res.evaluated} occurrence(s).`);
       await state.reload();
     } catch (e) {
       show("bad", (e as Error).message);
@@ -129,19 +131,42 @@ export default function SlaPage() {
                 </label>
                 <label className="field">
                   <span>kind</span>
-                  <select value={neu.kind ?? "deadline"} onChange={e => setNeu({ ...neu, kind: e.target.value })}>
+                  <select
+                    value={neu.kind ?? "deadline"}
+                    onChange={e => {
+                      const kind = e.target.value;
+                      // Clear the other kind's field so a leftover value can't sneak into the
+                      // request body (POST validates cron for deadline, threshold for mttr).
+                      setNeu({ ...neu, kind, deadline_cron: undefined, mttr_threshold_min: undefined });
+                    }}
+                  >
                     <option value="deadline">deadline</option>
                     <option value="mttr">mttr</option>
                   </select>
                 </label>
-                <label className="field">
-                  <span>cron (must finish by)</span>
-                  <input placeholder="0 18 * * *" value={neu.deadline_cron ?? ""} onChange={e => setNeu({ ...neu, deadline_cron: e.target.value })} />
-                </label>
-                <label className="field">
-                  <span>timezone</span>
-                  <input value={neu.timezone ?? ""} onChange={e => setNeu({ ...neu, timezone: e.target.value })} />
-                </label>
+                {(neu.kind ?? "deadline") === "deadline" ? (
+                  <>
+                    <label className="field">
+                      <span>cron (must finish by)</span>
+                      <input placeholder="0 18 * * *" value={neu.deadline_cron ?? ""} onChange={e => setNeu({ ...neu, deadline_cron: e.target.value })} />
+                    </label>
+                    <label className="field">
+                      <span>timezone</span>
+                      <input value={neu.timezone ?? ""} onChange={e => setNeu({ ...neu, timezone: e.target.value })} />
+                    </label>
+                  </>
+                ) : (
+                  <label className="field">
+                    <span>recover within (min)</span>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="30"
+                      value={neu.mttr_threshold_min ?? ""}
+                      onChange={e => setNeu({ ...neu, mttr_threshold_min: e.target.value === "" ? undefined : Number(e.target.value) })}
+                    />
+                  </label>
+                )}
                 <label className="field">
                   <span>description</span>
                   <input value={neu.description ?? ""} onChange={e => setNeu({ ...neu, description: e.target.value })} />
@@ -149,7 +174,11 @@ export default function SlaPage() {
                 <button
                   className="btn"
                   data-tone="primary"
-                  disabled={!neu.dag_id || !neu.deadline_cron || busy === "__new"}
+                  disabled={
+                    !neu.dag_id ||
+                    ((neu.kind ?? "deadline") === "deadline" ? !neu.deadline_cron : !neu.mttr_threshold_min) ||
+                    busy === "__new"
+                  }
                   onClick={() => void add()}
                 >
                   <Plus size={14} />
@@ -168,7 +197,7 @@ export default function SlaPage() {
                       <th>domain</th>
                       <th>target</th>
                       <th>kind</th>
-                      <th>cron</th>
+                      <th>cron / threshold</th>
                       <th>timezone</th>
                       <th>description</th>
                       <th>active</th>
@@ -185,14 +214,31 @@ export default function SlaPage() {
                           <td className="mono">{p.target_key}</td>
                           <td>{p.kind}</td>
                           <td style={{ width: 150 }}>
-                            <input
-                              className="mono"
-                              value={v.deadline_cron ?? ""}
-                              onChange={e => patch(p.id, { deadline_cron: e.target.value })}
-                            />
+                            {p.kind === "mttr" ? (
+                              <input
+                                className="mono"
+                                type="number"
+                                min={1}
+                                title="recover within, minutes"
+                                value={v.mttr_threshold_min ?? ""}
+                                onChange={e =>
+                                  patch(p.id, { mttr_threshold_min: e.target.value === "" ? undefined : Number(e.target.value) })
+                                }
+                              />
+                            ) : (
+                              <input
+                                className="mono"
+                                value={v.deadline_cron ?? ""}
+                                onChange={e => patch(p.id, { deadline_cron: e.target.value })}
+                              />
+                            )}
                           </td>
                           <td style={{ width: 150 }}>
-                            <input value={v.timezone ?? ""} onChange={e => patch(p.id, { timezone: e.target.value })} />
+                            {p.kind === "mttr" ? (
+                              <span className="mono" title="unused for mttr">—</span>
+                            ) : (
+                              <input value={v.timezone ?? ""} onChange={e => patch(p.id, { timezone: e.target.value })} />
+                            )}
                           </td>
                           <td>
                             <input
@@ -236,9 +282,10 @@ export default function SlaPage() {
                   <thead>
                     <tr>
                       <th>outcome</th>
+                      <th>kind</th>
                       <th>domain</th>
                       <th>target</th>
-                      <th>deadline</th>
+                      <th title="cron deadline (deadline) or recovery due-by (mttr)">due</th>
                       <th className="num">lateness</th>
                       <th>run status</th>
                       <th>evaluated</th>
@@ -250,6 +297,7 @@ export default function SlaPage() {
                         <td>
                           <Pill tone={statusTone(r.outcome)}>{r.outcome}</Pill>
                         </td>
+                        <td>{r.kind}</td>
                         <td className="mono">{r.domain}</td>
                         <td className="mono trunc">{r.target_key}</td>
                         <td>{r.deadline_at}</td>

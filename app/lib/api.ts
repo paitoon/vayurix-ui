@@ -272,8 +272,11 @@ export type SlaPolicy = {
   target_key: string;
   kind: string;
   description: string | null;
-  deadline_cron: string;
+  // deadline_cron required for kind="deadline", null for kind="mttr".
+  deadline_cron: string | null;
   timezone: string;
+  // mttr_threshold_min required for kind="mttr", null for kind="deadline".
+  mttr_threshold_min: number | null;
   active: boolean;
 };
 
@@ -282,13 +285,18 @@ export type SlaResult = {
   domain: string;
   dag_id: string;
   target_key: string;
+  kind: string;
+  // deadline_at: the cron deadline (kind="deadline") or the recovery due-by time (kind="mttr").
   deadline_at: string;
   outcome: string;
   lateness_sec: number | null;
   run_status: string | null;
   pipeline_run_id: number | null;
-  deadline_cron: string;
+  // trigger_run_id: kind="mttr" only — the failed run that started this recovery clock.
+  trigger_run_id: number | null;
+  deadline_cron: string | null;
   timezone: string;
+  mttr_threshold_min: number | null;
   evaluated_at: string;
 };
 
