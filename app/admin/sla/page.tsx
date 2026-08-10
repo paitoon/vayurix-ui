@@ -91,6 +91,18 @@ export default function SlaPage() {
     setBusy(null);
   };
 
+  const applyTuning = async (t: SlaTuning) => {
+    setBusy(`__apply${t.id}`);
+    try {
+      await api.post(`/sla/tuning/${t.id}/apply`);
+      show("ok", `applied to ${t.dag_id}.`);
+      await state.reload();
+    } catch (e) {
+      show("bad", (e as Error).message);
+    }
+    setBusy(null);
+  };
+
   const tuneNow = async () => {
     setBusy("__tune");
     try {
@@ -339,9 +351,10 @@ export default function SlaPage() {
               )}
             </Card>
 
-            {/* deadline-kind only — a policy needs >=5 recent runs and results before a
-                recommendation is worth writing (sla::TUNING_MIN_SAMPLES), so a quiet new policy
-                showing nothing here is expected, not broken. */}
+            {/* Covers both kinds — a policy needs >=5 recent samples (runs+results for deadline,
+                recovered episodes for mttr) before a recommendation is worth writing
+                (sla::TUNING_MIN_SAMPLES), so a quiet new policy showing nothing here is expected,
+                not broken. */}
             <Card title="Tuning recommendations" meta={`${tuning.length}`} tight>
               {tuning.length === 0 ? (
                 <Empty>No recommendations yet — needs at least a few days of history per dag.</Empty>
@@ -350,28 +363,65 @@ export default function SlaPage() {
                   <thead>
                     <tr>
                       <th>dag</th>
+                      <th>suggests</th>
                       <th>recommendation</th>
                       <th>confidence</th>
                       <th>summary</th>
                       <th>model</th>
                       <th>written</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
-                    {tuning.map(t => (
-                      <tr key={t.id}>
-                        <td className="mono trunc">{t.dag_id}</td>
-                        <td>{t.recommendations?.recommendation ?? "—"}</td>
-                        <td>
-                          <Pill tone={statusTone(t.recommendations?.confidence)}>
-                            {t.recommendations?.confidence ?? "—"}
-                          </Pill>
-                        </td>
-                        <td className="trunc">{t.summary ?? "—"}</td>
-                        <td className="mono">{t.model ?? "—"}</td>
-                        <td>{relTime(t.created_at)}</td>
-                      </tr>
-                    ))}
+                    {tuning.map(t => {
+                      // The model's response has a trailing "SUGGESTED_CRON:"/"SUGGESTED_THRESHOLD_MIN:"
+                      // line meant for parsing, not reading — strip it from the prose shown here.
+                      const prose = t.recommendations?.recommendation?.split(/\nSUGGESTED_(CRON|THRESHOLD_MIN):/)[0] ?? "—";
+                      const isMttr = t.recommendations != null && "suggested_threshold_min" in t.recommendations;
+                      const cron = t.recommendations?.suggested_cron;
+                      const threshold = t.recommendations?.suggested_threshold_min;
+                      const applicable = isMttr ? threshold != null : cron != null;
+                      return (
+                        <tr key={t.id}>
+                          <td className="mono trunc">{t.dag_id}</td>
+                          <td className="mono">{isMttr ? "threshold (min)" : "cron"}</td>
+                          <td>{prose}</td>
+                          <td>
+                            <Pill tone={statusTone(t.recommendations?.confidence)}>
+                              {t.recommendations?.confidence ?? "—"}
+                            </Pill>
+                          </td>
+                          <td className="trunc">{t.summary ?? "—"}</td>
+                          <td className="mono">{t.model ?? "—"}</td>
+                          <td>{relTime(t.created_at)}</td>
+                          <td className="actions">
+                            {t.applied_at ? (
+                              <span title={`applied ${relTime(t.applied_at)}`}>
+                                <Pill tone="blue">applied</Pill>
+                              </span>
+                            ) : (
+                              <button
+                                className="btn btn-sm"
+                                data-tone={applicable ? "primary" : undefined}
+                                disabled={!applicable || busy === `__apply${t.id}`}
+                                title={
+                                  isMttr
+                                    ? threshold != null
+                                      ? `set mttr_threshold_min to ${threshold}`
+                                      : "no machine-applicable suggestion — edit the policy directly"
+                                    : cron
+                                      ? `set deadline_cron to "${cron}"`
+                                      : "no machine-applicable suggestion — edit the policy directly"
+                                }
+                                onClick={() => void applyTuning(t)}
+                              >
+                                Apply
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}

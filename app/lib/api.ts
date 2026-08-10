@@ -305,9 +305,19 @@ export type SlaTuning = {
   dag_id: string;
   model: string | null;
   summary: string | null;
-  // Shape written by sla::save_tuning: { recommendation: string, confidence: string }.
-  recommendations: { recommendation?: string; confidence?: string } | null;
+  // Shape written by sla::save_tuning — exactly one of suggested_cron (deadline policies) /
+  // suggested_threshold_min (mttr policies) is present as a key, null when the model said "keep
+  // as is" or its SUGGESTED_* line didn't parse. POST /sla/tuning/{id}/apply 400s when both are
+  // absent/null.
+  recommendations: {
+    recommendation?: string;
+    confidence?: string;
+    suggested_cron?: string | null;
+    suggested_threshold_min?: number | null;
+  } | null;
   metrics_snapshot: Record<string, unknown> | null;
+  // Set once by POST /sla/tuning/{id}/apply; null = never applied.
+  applied_at: string | null;
   created_at: string;
 };
 
