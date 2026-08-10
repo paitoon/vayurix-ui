@@ -158,6 +158,9 @@ export default function SlaPage() {
           "rca_policy.sla_evaluate_interval_sec",
           "rca_policy.sla_catchup_days",
           "rca_policy.sla_tuning_interval_days",
+          "rca_policy.sla_tuning_min_samples",
+          "rca_policy.sla_tuning_sample_limit",
+          "rca_policy.sla_tuning_max_per_pass",
         ]}
       />
       <Resource state={state} label="Loading SLA…">

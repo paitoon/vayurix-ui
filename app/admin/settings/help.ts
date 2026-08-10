@@ -108,6 +108,10 @@ export const HELP: Record<string, string> = {
   "rca_policy.max_evidence_chars": "Cap on log text sent to the model. 0 = no cap, which gets expensive on chatty tasks.",
   "rca_policy.sla_evaluate_interval_sec": "How often deadlines are evaluated. Whether the pass runs at all is the `sla` service.",
   "rca_policy.sla_catchup_days": "How far back each pass re-checks deadlines, so a stopped watcher catches up.",
+  "rca_policy.sla_tuning_interval_days": "Minimum days between tuning recommendations for the same policy. Checked every tick; the LLM only runs this often.",
+  "rca_policy.sla_tuning_min_samples": "Minimum recent samples before a tuning recommendation is written. Fewer would be noise, not signal.",
+  "rca_policy.sla_tuning_sample_limit": "How many recent runs/results a tuning pass reads per policy, most-recent-first.",
+  "rca_policy.sla_tuning_max_per_pass": "Cap on LLM calls per tuning pass, so a burst of newly-due policies can't delay the next deadline-evaluation tick.",
 
   // ---- email
   "email.host": "SMTP server for escalation notices and sign-in codes. Empty disables email entirely.",
