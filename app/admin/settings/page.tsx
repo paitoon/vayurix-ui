@@ -22,7 +22,6 @@ import { SettingRows } from "./editor";
 // rather than silently hidden.
 const SECTION_ORDER = [
   "app",
-  "services",
   "worker",
   "agent",
   "embedding",

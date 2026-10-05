@@ -9,10 +9,6 @@ export const HELP: Record<string, string> = {
   "app.name": "Label for this deployment, shown in the console header. Give prod and staging different names.",
   "app.timezone": "IANA zone used for log timestamps and the `_local` fields in API responses. Empty = UTC. Stored data stays UTC.",
 
-  // ---- services
-  "services.host": "Address the API binds to. 0.0.0.0 = every interface; 127.0.0.1 = only this machine. Takes effect on restart.",
-  "services.port": "Port the API listens on. Takes effect on restart.",
-
   // ---- worker
   "worker.heartbeat_interval_sec": "How often each worker records that it is alive. The supervisor checks at the same cadence.",
   "worker.stale_after_sec": "A worker silent for longer than this is treated as hung and restarted. Keep it several heartbeats long to avoid false alarms.",
@@ -81,6 +77,12 @@ export const HELP: Record<string, string> = {
   "kafka.bootstrap_servers": "Broker list, host:port[,host:port]. Takes effect on restart.",
   "kafka.partitions": "Partitions for topics vayurix creates. More partitions allow more parallel consumers; existing topics are not resized.",
   "kafka.replication": "Replication factor for those topics. Must not exceed the number of brokers.",
+  "kafka.security_protocol": "How the client talks to the broker: plaintext | ssl | sasl_plaintext | sasl_ssl. A TLS/SASL broker silently closes a plaintext connection during the handshake rather than giving an error that names the mismatch, so this has to match the broker, not be discovered from a stack trace. Takes effect on restart.",
+  "kafka.ssl_ca_location": "PEM CA bundle used to verify the broker's certificate (ssl/sasl_ssl). Needed whenever the broker's CA is not in the system trust store — the usual case for an internal cluster CA.",
+  "kafka.ssl_certificate_location": "Client certificate (PEM) — only for mutual TLS, where the broker itself authenticates the client. Leave empty otherwise.",
+  "kafka.ssl_key_location": "Private key (PEM) matching ssl_certificate_location. If the key has its own passphrase, set KAFKA_SSL_KEY_PASSWORD in .env — that's a credential, not a setting.",
+  "kafka.sasl_mechanism": "SASL mechanism for sasl_plaintext/sasl_ssl: plain | scram-sha-256 | scram-sha-512. Empty means no SASL layer.",
+  "kafka.sasl_username": "SASL username. The password is a credential — set KAFKA_SASL_PASSWORD in .env, not here.",
 
   // ---- spark_history
   "spark_history.base_url": "Spark History Server API root, e.g. http://host:18080/api/v1.",
