@@ -69,9 +69,12 @@ export const HELP: Record<string, string> = {
   "airflow.log_max_wait_sec": "How long to keep waiting for a task log that Airflow has not finished writing.",
   "airflow.log_poll_sec": "Gap between those attempts.",
   "airflow.lineage_resync_hours": "How often asset lineage is re-read into the graph. 0 = at startup and on demand only.",
-  "airflow.reconcile_interval_min": "How often to ask Airflow for failures it never told us about. Airflow callbacks are best-effort — a pod killed before its callback runs, or a lost POST, would otherwise be invisible.",
+  "airflow.reconcile_interval_min": "With event_source = both, how often to ask Airflow for events (failures, retries, finished runs) it never told us about. Airflow callbacks are best-effort — a pod killed before its callback runs, or a lost POST, would otherwise be invisible.",
   "airflow.reconcile_lookback_min": "How far back each of those passes looks. Keep it several intervals wide so a missed pass or a restart still gets covered.",
   "airflow.reconcile_max_per_pass": "Ceiling on task instances examined per pass, so a wide window cannot turn into a scan of Airflow's whole history.",
+  "airflow.event_source": "How vayurix learns what each DAG did. both (recommended) = DAG callbacks (vayurix_callbacks.py) for speed, plus polling the Airflow API for anything a callback lost. callback = callbacks only; a lost callback is a lost event. poll = Airflow API only, so a DAG needs no callback code at all.",
+  "airflow.poll_interval_sec": "Polling interval when event_source = poll. It is the detection delay, since polling is then the only way events arrive. Takes effect on restart.",
+  "airflow.poll_grace_sec": "With event_source = both, anything that finished less than this long ago is left to its callback, so the callback's version, with the real exception text, is the one that gets recorded.",
 
   // ---- k8s
   "k8s.enabled": "Read pod status and events from Kubernetes when a task fails. Only useful if Airflow runs on Kubernetes — it explains the failures a task log cannot: OOM kills, pods that were never scheduled, missing images.",
