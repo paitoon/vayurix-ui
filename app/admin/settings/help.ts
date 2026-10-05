@@ -31,28 +31,37 @@ export const HELP: Record<string, string> = {
   "openai_compat.api_key_env": "Name of the environment variable holding the key — not the key itself. Lets you point at any provider without a new hardcoded variable name, and keeps the secret out of the database.",
   "openai_compat.max_tokens": "0 omits the field entirely, which some servers require. Otherwise a cost ceiling per analysis.",
   "openai_compat.json_mode": "Ask the server to constrain output to valid JSON. Far more reliable than asking in the prompt — turn it off only for a provider that rejects the field, and expect occasional parse failures afterwards.",
+  "openai_compat.text_embedding_base_url": "Root URL of the embedding server, without the path, e.g. http://host:8003/v1. Separate from the chat base URL: the embedding server is often not the chat server.",
+  "openai_compat.text_embedding_path": "Appended to that URL. Almost always /embeddings.",
+  "openai_compat.text_embedding_model": "Embedding model id as that server names it (GET /v1/models lists them), e.g. nomic-embed-text.",
+  "openai_compat.text_embedding_auth_style": "How the key is sent: bearer = Authorization: Bearer, api_key = an api-key header, none = no auth.",
+  "openai_compat.text_embedding_api_key_env": "Name of the environment variable holding the embedding key — not the key itself. Set it in .env and restart.",
+  "openai_compat.text_embedding_dimensions": "Vector width to request. 0 = do not send the field, which a model without Matryoshka support (e.g. nomic-embed-text on vLLM) requires. Whatever the model returns must match the `vector(n)` columns in the database.",
 
   // ---- embedding
-  "embedding.provider": "Which backend produces embeddings for search and duplicate detection. Changing this after data exists mixes vector spaces and breaks similarity — re-embed if you switch.",
+  "embedding.provider": "Which backend produces embeddings for search and duplicate detection. openai_compat covers any server with an OpenAI-shaped /embeddings — OpenAI, vLLM, TEI, LiteLLM. Changing this after data exists mixes vector spaces and breaks similarity — re-embed if you switch.",
   "embedding.max_chars": "Characters of text sent per embedding request. Longer inputs cost more and get truncated by the model anyway.",
+  "embedding.batch_size": "Texts per embedding request. Larger batches mean fewer round trips and more memory on the model server.",
+  "embedding.max_retries": "Extra attempts after a transient embedding failure before giving up on that batch. Applies to every provider.",
+  "embedding.backoff_base_sec": "Base delay for those retries; it doubles each attempt.",
+  "embedding.circuit_fail_threshold": "Consecutive failures that trip the breaker, after which requests fail fast instead of piling up. 0 disables it.",
+  "embedding.circuit_reset_sec": "How long the breaker stays open before one request is allowed through to test recovery.",
 
   // ---- azure_openai
   "azure_openai.chat_deployment": "Name of the Azure deployment (not the model name) used for analysis.",
-  "azure_openai.chat_api_version": "Azure REST API version. Change only when Azure retires the one in use.",
+  "azure_openai.chat_api_version": "Azure REST API version for chat. Change only when Azure retires the one in use.",
   "azure_openai.chat_endpoint": "Base URL of the Azure resource serving the chat deployment.",
   "azure_openai.text_embedding_endpoint": "Base URL for embeddings. Usually the same resource as chat.",
   "azure_openai.text_embedding_model": "Embedding deployment/model name, e.g. text-embedding-3-small.",
   "azure_openai.text_embedding_dimensions": "Vector width requested from Azure. Must match the `vector(n)` columns in the database.",
+  "azure_openai.text_embedding_api_version": "Azure REST API version for embedding requests. Separate from chat's so the two can move independently.",
+  "azure_openai.text_embedding_api_key_env": "Name of the environment variable holding the embedding key — not the key itself. If it is unset or empty, AZURE_OPENAI_CHAT_API_KEY is used.",
 
   // ---- ollama
-  "ollama.ollama_base_url": "Where the Ollama server is. From inside a container this is the host IP, not localhost.",
+  "ollama.ollama_base_url": "Where the Ollama chat server is. From inside a container this is the host IP, not localhost.",
   "ollama.chat_model": "Model tag used for analysis, e.g. gpt-oss:20b. It must already be pulled on that server.",
   "ollama.text_embedding_model": "Model tag used for embeddings, e.g. nomic-embed-text. Its dimensionality is fixed by the model.",
-  "ollama.embed_max_retries": "Extra attempts after a transient embedding failure before giving up on that batch.",
-  "ollama.embed_backoff_base_sec": "Base delay for those retries; it doubles each attempt.",
-  "ollama.circuit_fail_threshold": "Consecutive failures that trip the breaker, after which requests fail fast instead of piling up.",
-  "ollama.circuit_reset_sec": "How long the breaker stays open before one request is allowed through to test recovery.",
-  "ollama.embed_batch_size": "Texts per embedding request. Larger batches mean fewer round trips and more memory on the model server.",
+  "ollama.text_embedding_base_url": "Where the Ollama server for embeddings is, e.g. http://host:11434 — the root only; /api/embed is appended. May be a different machine from the chat server.",
 
   // ---- airflow
   "airflow.base_url": "Airflow REST API root, including the version, e.g. http://host:8080/api/v2.",

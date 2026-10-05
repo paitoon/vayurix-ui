@@ -36,6 +36,12 @@ const SECTION_ORDER = [
   "retention",
 ];
 
+/** Tab names that differ from the section key. Display only — the stored keys keep their prefix. */
+const SECTION_LABEL: Record<string, string> = {
+  embedding: "text-embedding",
+};
+const label = (section: string) => SECTION_LABEL[section] ?? section;
+
 /** One provider's settings, keyed by the value of `agent.llm` that selects it. */
 const PROVIDER_SECTION: Record<string, string> = {
   azure_openai: "azure_openai",
@@ -53,6 +59,25 @@ const PROVIDER_SECTION: Record<string, string> = {
  *  invites it is the interface's fault. */
 const ELSEWHERE = ["rca_policy", ...Object.values(PROVIDER_SECTION)];
 
+/** The provider sections hold two kinds of key: what the chat model needs, and what embeddings
+ *  need. They are selected independently — `agent.llm` and `embedding.provider` — so each key has
+ *  to be shown under the selector that actually reads it. Showing `text_embedding_*` under `agent`
+ *  hid them whenever the LLM was a different provider from the embedder, which is exactly when
+ *  they matter. */
+const isEmbeddingKey = (key: string) => key.split(".")[1]?.startsWith("text_embedding_") ?? false;
+
+/** What each selector shows of the provider it picks. */
+const SELECTORS: Record<string, { key: string; wanted: (key: string) => boolean }> = {
+  agent: {
+    key: "agent.llm",
+    wanted: k => !isEmbeddingKey(k),
+  },
+  embedding: {
+    key: "embedding.provider",
+    wanted: isEmbeddingKey,
+  },
+};
+
 /** Sections whose settings point at something outside this process, so "does it answer?" is a
  *  question worth asking before saving and hoping.
  *
@@ -65,6 +90,7 @@ const CHECKABLE: Record<string, string> = {
   kafka: "kafka",
   spark_history: "spark_history",
   agent: "llm",
+  embedding: "embedding",
 };
 
 const rank = (section: string) => {
@@ -77,8 +103,9 @@ export default function SettingsPage() {
   const [section, setSection] = useState<string | null>(null);
   const [probe, setProbe] = useState<{ target: string; result: Json } | null>(null);
   const [probing, setProbing] = useState(false);
-  /** The provider picked in the combo but not yet saved, so its settings can appear immediately. */
-  const [pendingLlm, setPendingLlm] = useState<string | null>(null);
+  /** A provider picked in a combo but not yet saved, keyed by the selector setting, so its
+   *  settings can appear immediately. */
+  const [pending, setPending] = useState<Record<string, string>>({});
 
   const check = async (target: string) => {
     setProbing(true);
@@ -116,7 +143,7 @@ export default function SettingsPage() {
                   const n = changedIn(s);
                   return (
                     <button key={s} data-active={String(s === current)} onClick={() => setSection(s)}>
-                      <span>{s}</span>
+                      <span>{label(s)}</span>
                       {n > 0 && <em title={`${n} changed from the default`}>{n}</em>}
                     </button>
                   );
@@ -124,7 +151,7 @@ export default function SettingsPage() {
               </nav>
 
               <Card
-                title={current}
+                title={label(current)}
                 meta={`${mine.length} setting${mine.length === 1 ? "" : "s"}`}
                 actions={
                   CHECKABLE[current] && (
@@ -156,22 +183,24 @@ export default function SettingsPage() {
                   rows={mine}
                   strip={current}
                   onChanged={state.reload}
-                  onDraft={(key, value) => key === "agent.llm" && setPendingLlm(value)}
+                  onDraft={(key, value) =>
+                    Object.values(SELECTORS).some(s => s.key === key) &&
+                    setPending(p => ({ ...p, [key]: value }))
+                  }
                 />
 
                 {/* The selected provider's own settings, in the same card. Only one provider is ever
-                    in use, so this is the only set worth showing — and it follows the combo before
-                    you save, because otherwise the way to find out what a provider needs is to
-                    commit to it first. */}
-                {current === "agent" &&
+                    in use per selector, so this is the only set worth showing — and it follows the
+                    combo before you save, because otherwise the way to find out what a provider
+                    needs is to commit to it first. */}
+                {SELECTORS[current] &&
                   (() => {
-                    const saved = String(
-                      all.find(r => r.key === "agent.llm")?.value ?? "",
-                    );
-                    const provider = pendingLlm ?? saved;
+                    const { key, wanted } = SELECTORS[current];
+                    const saved = String(all.find(r => r.key === key)?.value ?? "");
+                    const provider = pending[key] ?? saved;
                     const section = PROVIDER_SECTION[provider];
                     const providerRows = section
-                      ? all.filter(r => r.key.startsWith(`${section}.`))
+                      ? all.filter(r => r.key.startsWith(`${section}.`) && wanted(r.key))
                       : [];
                     if (!providerRows.length) return null;
                     return (
@@ -181,7 +210,7 @@ export default function SettingsPage() {
                           {provider !== saved && (
                             <>
                               {" "}
-                              <em>— save agent.llm to switch to it</em>
+                              <em>— save {key} to switch to it</em>
                             </>
                           )}
                         </div>
